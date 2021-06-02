@@ -100,10 +100,10 @@ namespace grafo.Models
                     while (!sr.EndOfStream)
                     {
                         string[] colonne = sr.ReadLine().Split(',');
-                        
+
                         // Se il primo carattere è un # allora è un commento e lo salto
                         if (colonne[0].StartsWith('#')) continue;
-                        
+
                         Nodo partenza = new Nodo(colonne[0]);
                         Nodo arrivo = new Nodo(colonne[1]);
                         Ramo ramo = new Ramo(partenza, arrivo, Convert.ToInt32(colonne[2]));
@@ -131,9 +131,10 @@ namespace grafo.Models
             int[,] matriceDistanza = new int[Nodi.Count + 1, Nodi.Count + 1];
             InizializzaMatrice(ref matriceDistanza);
 
+            // Crea il 'bordo' della tabella con i nomi dei nodi
             for (int i = 0; i < matriceDistanza.GetLength(0); matriceDistanza[0, i] = i - 1, i++) ;
             for (int j = 0; j < matriceDistanza.GetLength(1); matriceDistanza[j, 0] = j - 1, j++) ;
-            // matriceDistanza[0,0] = -1;
+
             foreach (Ramo ramo in Rami)
             {
                 string partenzaString = ramo.Partenza.Nome;
@@ -147,18 +148,45 @@ namespace grafo.Models
 
             MatriceDistanze = matriceDistanza;
             InserisciNodiAdiacenti(MatriceDistanze);
+            SalvaMatriceDistanze("matriceDistanze.txt", FileMode.Open);
             return matriceDistanza;
+        }
+
+        public void SalvaMatriceDistanze(string fileName, FileMode fileMode = FileMode.Create)
+        {
+            using (FileStream fin = new FileStream(fileName, fileMode))
+            {
+                using (StreamWriter sw = new StreamWriter(fin))
+                {
+                    sw.WriteLine($"Matrice distanze {DateTime.Today:dddd dd/MMMM} {DateTime.Now:HH:mm}");
+                    for (int i = 0; i < MatriceDistanze.GetLength(0); i++)
+                    {
+                        for (int j = 0; j < MatriceDistanze.GetLength(1); j++)
+                            if (MatriceDistanze[i, j] == -1)
+                                sw.Write($"∞".PadRight(3));
+                            else 
+                                sw.Write($"{ MatriceDistanze[i, j] }".PadRight(3));
+
+                        sw.WriteLine("");
+                    }
+                    sw.Flush();
+                }
+            }
         }
 
         private void InserisciNodiAdiacenti(int[,] matrice)
         {
             List<Nodo> nodiAdiacenti = new();
 
+            /*
+            Controlla ogni riga della matrice delle distanze, appena è diversa da '-1'
+            aggiunge il nodo ai nodi adiacenti del nodo corrente
+            */
             for (int i = 1; i < matrice.GetLength(0); i++)
             {
                 for (int j = 1; j < matrice.GetLength(1); j++)
                     if (matrice[i, j] != -1)
-                        nodiAdiacenti.Add(new Nodo($"{ j - 1 }"));
+                        nodiAdiacenti.Add(this[(j - 1).ToString()]);
 
                 Nodo nodo = RicercaNellaListaPerNome(Nodi, $"{ i - 1 }");
                 nodo.AggiungiNodiAdiacenti(nodiAdiacenti);
@@ -199,7 +227,13 @@ namespace grafo.Models
         }
 
 
-        // Serve per la ricerca dentro la lista 'Nodi' usando la stringa e facendo la comparazione con il nome
+        /// <summery>
+        /// Permette di cercare un determinato nodo 
+        /// all'interno del grafo usando il suo nome
+        /// </summery>
+        /// <returns>
+        /// Il nodo se viene trovato, altrimenti ritorna null
+        /// </returns>
         public Nodo this[string nomeNodo]
         {
             get
