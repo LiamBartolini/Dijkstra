@@ -19,12 +19,13 @@ namespace grafo
             grafo.CaricaGrafo("grafoDaCaricare.csv");
 
             Console.WriteLine(grafo.StampaMatrice(grafo.CalcolaMatriceDistanze()));
-            (List<Nodo>, int) ret = grafo.Dijkstra(grafo["1"], grafo["5"]);
+            (List<Nodo>, int) ret = grafo.Dijkstra(grafo["1"], grafo["4"]);
             
             StringBuilder sb = new();
             ret.Item1.ForEach(x => sb.AppendLine($"\t{ x }"));
 
             Console.WriteLine($"Numero di nodi: { ret.Item1.Count }\nNodi:\n{sb}Costo: {ret.Item2}");
+            
         }
     }
 }

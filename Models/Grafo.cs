@@ -15,15 +15,14 @@ namespace grafo.Models
 
         public List<Ramo> Rami;
 
-        public List<string> NodiStr;
-
+        // Inizializzo una matrice delle distanze a dimensione 0,0, varrà sovrascritta dopo che viene calcolata
         public int[,] MatriceDistanze { get; private set; } = new int[0, 0];
 
+        // Costruttore, non accetta parametri ed inizilizza tutte le liste
         public Grafo()
         {
             Nodi = new List<Nodo>();
             Rami = new List<Ramo>();
-            NodiStr = new List<string>();
         }
 
         public (List<Nodo>, int costo) Dijkstra(Nodo partenza, Nodo arrivo)
@@ -39,30 +38,52 @@ namespace grafo.Models
             ripeto finché non raggiungo il nodo 'fine'
             */
 
+            // toRet è la lista contenente tutti i nodi del percorso minore
             List<Nodo> toRet = new();
+
+            // costoToRet è il costo minimo per raggiungere il nodo
             int costoToRet = 0;
+
+            // corrente mi serve per il controllo di tutti i nodi del percorso
             Nodo corrente = partenza;
+
+            // distanzeTmp lo uso per inserirci le distanze dal nodo corrente ai nodi adiacenti, verrà pulita ad ogni giro
             List<int> distanzeTmp = new();
+
+            // E' l'indice del nodo che ha la distanza minima tra i nodi adiacenti al corrente
             int indiceNodoConDistanzaMinima = 0;
 
+            List<Nodo> toRetAdiacente = new();
+            int distanzaCalcolataDirettamenteDalNodo = 0;
+            bool isAdjacent = false;
+
+            // Aggiungo il primo nodo alla lista, perché è gia "visitato"
             toRet.Add(partenza);
+            toRetAdiacente.Add(partenza);
+
+            // Se dentro è tra i nodi adiacenti calcolo la sua distanza e la controllo alla fine con la distanza calcolata normalmente
+            if (RicercaNellaListaPerNome(corrente.NodiAdiacenti, arrivo.Nome) != null)
+            {
+                Nodo nodoTmp = RicercaNellaListaPerNome(corrente.NodiAdiacenti, arrivo.Nome);
+
+                int i = Convert.ToInt32(corrente.Nome), j = Convert.ToInt32(arrivo.Nome);
+                distanzaCalcolataDirettamenteDalNodo += MatriceDistanze[i + 1, j + 1];
+                toRetAdiacente.Add(nodoTmp);
+                isAdjacent = true;
+            }
+
             do
             {
-                // Se dentro è tra i nodi adiacenti allora faccio i calcoli e lo ritorno
-                if (RicercaNellaListaPerNome(corrente.NodiAdiacenti, arrivo.Nome) != null)
-                {
-                    Nodo nodoTmp = RicercaNellaListaPerNome(corrente.NodiAdiacenti, arrivo.Nome);
-
-                    int i = Convert.ToInt32(corrente.Nome), j = Convert.ToInt32(arrivo.Nome);
-                    costoToRet += MatriceDistanze[i + 1, j + 1];
-                    toRet.Add(nodoTmp);
-                    break;
-                }
+                // se il nodo è adiacente, calcolo finché il costo diventa maggiore, in quel case
+                // esco e ritorno il valore del nodo adiacente, calcolato precedentemente
+                if (isAdjacent && costoToRet > distanzaCalcolataDirettamenteDalNodo) break;
 
                 foreach (Nodo nodoAdiacente in corrente.NodiAdiacenti)
                 {
                     string nomeNodoAdiacente = nodoAdiacente.Nome;
                     int i = Convert.ToInt32(corrente.Nome), j = Convert.ToInt32(nodoAdiacente.Nome);
+
+                    // Usando la matrice delle distanze mi salvo la distanza tra due nodi
                     int distanza = (int)MatriceDistanze[i + 1, j + 1];
                     distanzeTmp.Add(distanza);
 
@@ -70,8 +91,9 @@ namespace grafo.Models
                     indiceNodoConDistanzaMinima = distanzeTmp.IndexOf(distanzeTmp.Min());
                 }
 
-                // Mi salvo l'indice del nodo con distanza minima
+                // Mi salvo il nodo con la distanza minima
                 Nodo nodoConDistanzaMinima = RicercaNellaListaPerNome(Nodi, corrente.NodiAdiacenti[indiceNodoConDistanzaMinima].Nome);
+
                 // Salvo il nodo con distanza minima nella lista
                 toRet.Add(nodoConDistanzaMinima);
 
@@ -84,11 +106,12 @@ namespace grafo.Models
                 // Il nodo corrente diventerà il nodo appena aggiunto
                 corrente = nodoConDistanzaMinima;
 
-
                 // Ripeto finché corrente.Nome != fine.Nome
             } while (corrente.Nome != arrivo.Nome);
 
-            return (toRet, costoToRet);
+            if (isAdjacent == false) return (toRet, costoToRet);
+            else if (distanzaCalcolataDirettamenteDalNodo < costoToRet) return (toRetAdiacente, distanzaCalcolataDirettamenteDalNodo);
+            else return (toRet, costoToRet);
         }
 
         public void CaricaGrafo(string fileName)
@@ -104,20 +127,18 @@ namespace grafo.Models
                         // Se il primo carattere è un # allora è un commento e lo salto
                         if (colonne[0].StartsWith('#')) continue;
 
+                        // Creo i nodi
                         Nodo partenza = new Nodo(colonne[0]);
                         Nodo arrivo = new Nodo(colonne[1]);
+
+                        // Creo il ramo
                         Ramo ramo = new Ramo(partenza, arrivo, Convert.ToInt32(colonne[2]));
 
-                        if (!NodiStr.Contains(colonne[0]))
-                        {
+                        // Evito di inserire nodi doppi, con un semplice controllo
+                        if (RicercaNellaListaPerNome(Nodi, colonne[0]) == null)
                             Nodi.Add(partenza);
-                            NodiStr.Add(colonne[0]);
-                        }
-                        else if (!NodiStr.Contains(colonne[1]))
-                        {
+                        else if (RicercaNellaListaPerNome(Nodi, colonne[1]) == null)
                             Nodi.Add(arrivo);
-                            NodiStr.Add(colonne[1]);
-                        }
 
                         Rami.Add(ramo);
                     }
@@ -148,29 +169,36 @@ namespace grafo.Models
 
             MatriceDistanze = matriceDistanza;
             InserisciNodiAdiacenti(MatriceDistanze);
-            SalvaMatriceDistanze("matriceDistanze.txt", FileMode.Open);
+            SalvaMatriceDistanze("matriceDistanze.txt");
             return matriceDistanza;
         }
 
         public void SalvaMatriceDistanze(string fileName, FileMode fileMode = FileMode.Create)
         {
-            using (FileStream fin = new FileStream(fileName, fileMode))
+            try
             {
-                using (StreamWriter sw = new StreamWriter(fin))
+                using (FileStream fin = new FileStream(fileName, fileMode))
                 {
-                    sw.WriteLine($"Matrice distanze {DateTime.Today:dddd dd/MMMM} {DateTime.Now:HH:mm}");
-                    for (int i = 0; i < MatriceDistanze.GetLength(0); i++)
+                    using (StreamWriter sw = new StreamWriter(fin))
                     {
-                        for (int j = 0; j < MatriceDistanze.GetLength(1); j++)
-                            if (MatriceDistanze[i, j] == -1)
-                                sw.Write($"∞".PadRight(3));
-                            else 
-                                sw.Write($"{ MatriceDistanze[i, j] }".PadRight(3));
+                        sw.WriteLine($"Matrice distanze {DateTime.Today:dddd dd/MMMM} {DateTime.Now:HH:mm}");
+                        for (int i = 0; i < MatriceDistanze.GetLength(0); i++)
+                        {
+                            for (int j = 0; j < MatriceDistanze.GetLength(1); j++)
+                                if (MatriceDistanze[i, j] == -1)
+                                    sw.Write($"∞".PadRight(3));
+                                else
+                                    sw.Write($"{ MatriceDistanze[i, j] }".PadRight(3));
 
-                        sw.WriteLine("");
+                            sw.WriteLine("");
+                        }
+                        sw.Flush();
                     }
-                    sw.Flush();
                 }
+            }
+            catch
+            {
+                throw new Exception("Errore durante il salvataggio della matrice sul file");
             }
         }
 

@@ -1,4 +1,4 @@
-Matrice distanze mercoledì 02/giugno 11:16
+Matrice distanze mercoledì 02/giugno 12:19
 ∞  0  1  2  3  4  5  
 0  ∞  1  2  ∞  6  ∞  
 1  ∞  ∞  ∞  1  3  ∞  
