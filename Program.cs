@@ -7,25 +7,23 @@ namespace grafo
 {
     class Program
     {
-        /*
-        1. Matrice delle distanza - in un file
-        2. Classe grafo ((Nodo[], int costo) PercorsoMinimo(Nodo in, Nodo out))
-        */
         static void Main(string[] args)
         {
-            Console.OutputEncoding = System.Text.Encoding.UTF8;
+            Console.OutputEncoding = System.Text.Encoding.UTF8; // per visualizzare il segno dell'infinito
             Console.WriteLine("Bartolini Liam - grafo - Dijkstra");
-            Grafo grafo = new Grafo();
+            Grafo grafo = new();
             grafo.CaricaGrafo("grafoDaCaricare.csv");
 
             Console.WriteLine(grafo.StampaMatrice(grafo.CalcolaMatriceDistanze()));
-            (List<Nodo>, int) ret = grafo.Dijkstra(grafo["1"], grafo["4"]);
+            (List<Nodo>, int) dijkstra = grafo.Dijkstra(grafo["1"], grafo["4"]);
             
-            StringBuilder sb = new();
-            ret.Item1.ForEach(x => sb.AppendLine($"\t{ x }"));
+            StringBuilder elencoDeiNodi = new();
+            dijkstra.Item1.ForEach(x => elencoDeiNodi.AppendLine($"\t{ x }"));
 
-            Console.WriteLine($"Numero di nodi: { ret.Item1.Count }\nNodi:\n{sb}Costo: {ret.Item2}");
-            
+            Console.WriteLine($"Numero di nodi: { dijkstra.Item1.Count }\nNodi:\n{elencoDeiNodi}Costo: {dijkstra.Item2}");
+
+            try { grafo.SalvaMatriceDistanze("matriceDistanze.txt"); }
+            catch (Exception e) { Console.WriteLine(e.Message); }
         }
     }
 }
